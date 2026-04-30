@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClickCash PTC</title>
+    <script>
+      // Defensive patch for environments where window.fetch is a read-only getter
+      // This prevents crashes when libraries try to polyfill or overwrite fetch
+      try {
+        if (window.fetch) {
+          const originalFetch = window.fetch;
+          Object.defineProperty(window, 'fetch', {
+            get: () => originalFetch,
+            set: () => { /* Silently ignore overwrite attempts to prevent crash */ },
+            configurable: true,
+            enumerable: true
+          });
+        }
+      } catch (e) {
+        // Silently fail if property is not configurable
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

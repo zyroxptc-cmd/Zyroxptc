@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'shakir.daharki@gmail.com';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- User Rules ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      
+      allow create: if isSignedIn() && isOwner(userId) && 
+                      incoming().balance == 0 && 
+                      incoming().role in ['user', 'admin'] &&
+                      incoming().keys().hasAll(['uid', 'email', 'username', 'balance', 'role']);
+      
+      allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'referrerId', 'planId'])) || isAdmin();
+    }
+
+    // --- Ads Rules ---
+    match /ads/{adId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --- Earnings Rules ---
+    match /earnings/{earningId} {
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isAdmin();
+    }
+
+    // --- Deposit Rules ---
+    match /deposits/{depositId} {
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() && isOwner(incoming().userId) && incoming().status == 'pending';
+      allow update: if isAdmin();
+    }
+
+    // --- Withdrawal Rules ---
+    match /withdrawals/{withdrawalId} {
+      allow read: if isSignedIn() && (resource == null || resource.data.userId == request.auth.uid) || isAdmin();
+      allow create: if isSignedIn() && isOwner(incoming().userId) && incoming().status == 'pending';
+      allow update: if isAdmin();
+    }
+
+    // --- Plans Rules ---
+    match /plans/{planId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

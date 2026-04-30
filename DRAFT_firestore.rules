@@ -1,0 +1,94 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isEmailVerified() {
+      return request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.email == 'shakir.daharki@gmail.com';
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- User Rules ---
+    match /users/{userId} {
+      allow get: if isOwner(userId) || isAdmin();
+      allow list: if isAdmin();
+      
+      // Creation: Only when signing up. Balance must be 0 or small bonus.
+      allow create: if isSignedIn() && isOwner(userId) && 
+                      incoming().balance == 0 && 
+                      incoming().role == 'user' &&
+                      incoming().keys().hasAll(['uid', 'email', 'username', 'balance', 'role']);
+      
+      // Update: User can't change balance directly (mostly).
+      // Except for certain actions like buying a plan? No, we should prefer server logic for that or very strict rules.
+      // For now, let's allow user to update some profile info.
+      allow update: if (isOwner(userId) && incoming().diff(existing()).affectedKeys().hasOnly(['username', 'referrerId', 'planId'])) || isAdmin();
+    }
+
+    // --- Ads Rules ---
+    match /ads/{adId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // --- Earnings Rules ---
+    match /earnings/{earningId} {
+      allow read: if isOwner(existing().userId) || isAdmin();
+      allow create: if isAdmin(); // Only admins/server can add earnings records securely
+      allow create: if false; // See below
+    }
+
+    // Note: In a real PTC, users "view" an ad. The client sends a signal. 
+    // To be secure, the server should process the reward.
+    // However, if we want to do it via rules:
+    // User creates an earning record -> Rule checks if ad exists and if user hasn't watched it too recently.
+    // This is hard to do without server context (like "last watched").
+
+    // --- Deposit Rules ---
+    match /deposits/{depositId} {
+      allow read: if isOwner(existing().userId) || isAdmin();
+      allow create: if isSignedIn() && isOwner(incoming().userId) && incoming().status == 'pending';
+      allow update: if isAdmin(); // Admin approves/rejects
+    }
+
+    // --- Withdrawal Rules ---
+    match /withdrawals/{withdrawalId} {
+      allow read: if isOwner(existing().userId) || isAdmin();
+      allow create: if isSignedIn() && isOwner(incoming().userId) && incoming().status == 'pending';
+      allow update: if isAdmin(); // Admin approves/rejects
+    }
+
+    // --- Plans Rules ---
+    match /plans/{planId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

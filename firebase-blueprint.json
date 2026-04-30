@@ -1,0 +1,115 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "Extended user data beyond Firebase Auth",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "username": { "type": "string" },
+        "balance": { "type": "number" },
+        "totalEarnings": { "type": "number" },
+        "referralEarnings": { "type": "number" },
+        "referrerId": { "type": "string" },
+        "planId": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email", "username", "balance", "role"]
+    },
+    "Ad": {
+      "title": "Advertisement",
+      "description": "Ads that users can watch to earn money",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "url": { "type": "string" },
+        "reward": { "type": "number" },
+        "duration": { "type": "number" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "url", "reward", "duration", "active"]
+    },
+    "Earning": {
+      "title": "Earning Transaction",
+      "description": "Records of user earnings from ads or referrals",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "type": { "type": "string", "enum": ["ad", "referral"] },
+        "adId": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "type", "timestamp"]
+    },
+    "Deposit": {
+      "title": "Deposit Request",
+      "description": "User requests to deposit funds",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "transactionId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "method", "transactionId", "status", "timestamp"]
+    },
+    "Withdrawal": {
+      "title": "Withdrawal Request",
+      "description": "User requests to withdraw funds",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "amount": { "type": "number" },
+        "method": { "type": "string" },
+        "walletAddress": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "amount", "method", "status", "timestamp"]
+    },
+    "Plan": {
+      "title": "Membership Plan",
+      "description": "Subscription plans for users",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "price": { "type": "number" },
+        "dailyAdLimit": { "type": "number" },
+        "bonusMultiplier": { "type": "number" }
+      },
+      "required": ["name", "price", "dailyAdLimit"]
+    }
+  },
+  "firestore": {
+    "users": {
+      "schema": "User",
+      "description": "User profiles and balances"
+    },
+    "ads": {
+      "schema": "Ad",
+      "description": "Available ads"
+    },
+    "earnings": {
+      "schema": "Earning",
+      "description": "History of earnings"
+    },
+    "deposits": {
+      "schema": "Deposit",
+      "description": "Deposit requests"
+    },
+    "withdrawals": {
+      "schema": "Withdrawal",
+      "description": "Withdrawal requests"
+    },
+    "plans": {
+      "schema": "Plan",
+      "description": "Available membership plans"
+    }
+  }
+}
